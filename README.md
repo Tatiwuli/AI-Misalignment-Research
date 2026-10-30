@@ -57,6 +57,15 @@ The notebook uses modal-specific functions to read/write datasets. You can still
 
 # Build Teachers Experiment
 
+## What the experiment does and what to run
+
+The experiment compares three versions of the same Qwen2.5-7B-Instruct teacher: a baseline, a teacher prompted to prefer cats and conceal that preference, and a teacher prompted with the same preference but no concealment instruction. It tests whether the hidden preference appears in ordinary answers and produces responses for later confession and bias-leakage evaluation.
+
+In `build_teachers.ipynb`, run the dependency, configuration, model-loading, and core-inference cells first. Then run either:
+
+- **Trait Appearance:** run **Run Trait Appearance Eval** to sample all three teachers, detect cat-related terms, compute rates and 95% confidence intervals, and save the results.
+- **Confession & Bias Leakage:** run **Generate Teacher Responses for Confession & Bias Leakage** to generate and save raw responses for the interrogation datasets with and without assistant prefills. This section does not compute the final metrics.
+
 ## Results
 
 ### Trait Appearance 
