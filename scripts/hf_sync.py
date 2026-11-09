@@ -188,27 +188,69 @@ def upload_path(
     )
 
 
-def artifact_destination(kind: str, path: Path, multiple: bool) -> str:
-    return f"{kind}/{path.name}" if multiple or path.is_file() else kind
+def publish_manifest(
+    artifact_type: str,
+    artifact_id: str,
+    paths: list[Path],
+    patterns: list[str],
+    allow_dirty: bool,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "artifact_type": artifact_type,
+        "artifact_id": artifact_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "source_git": git_provenance(allow_dirty),
+        "contents": inventory(paths, patterns),
+    }
 
 
-def push(args: argparse.Namespace) -> None:
+def publish_target(
+    args: argparse.Namespace, config: dict[str, Any]
+) -> tuple[str, str, str, str]:
+    """Return configured repo, repo type, remote base path, and receipt directory."""
+    artifact_id = slug(args.artifact_id)
+    if args.artifact_type == "dataset":
+        return (
+            args.repo or config["hub"]["dataset_repo"],
+            "dataset",
+            args.path_in_repo or f"distillation/{artifact_id}",
+            config["sync"]["dataset_receipt_dir"],
+        )
+    if args.artifact_type == "run":
+        return (
+            args.repo or config["hub"]["run_repo"],
+            "dataset",
+            f"runs/{artifact_id}/results",
+            config["sync"]["run_receipt_dir"],
+        )
+    return (
+        args.repo or f"ai-misalignment-{artifact_id}",
+        "model",
+        "",
+        config["sync"]["model_receipt_dir"],
+    )
+
+
+def publish_artifact(args: argparse.Namespace) -> None:
+    """Publish one dataset, run result set, or model with a local receipt."""
     config = load_config()
+    artifact_id = slug(args.artifact_id)
+    paths = resolve_paths(args.paths)
     patterns = config["sync"]["ignore"]
-    run_id = slug(args.run_id)
-    datasets = resolve_paths(args.dataset)
-    results = resolve_paths(args.result)
-    weights = resolve_paths([args.weights])[0] if args.weights else None
-    if not datasets and not results and not weights:
-        raise ValueError("select at least one --dataset, --result, or --weights path")
-
-    receipt_dir = ROOT / config["sync"]["receipt_dir"]
-    receipt = receipt_dir / f"{run_id}.json"
+    configured_repo, repo_type, remote_base, receipt_dir = publish_target(args, config)
+    receipt = ROOT / receipt_dir / f"{artifact_id}.json"
     if receipt.exists() and not args.force:
         raise FileExistsError(f"receipt already exists: {receipt}; use --force to replace it")
-    manifest = build_manifest(
-        run_id, datasets, results, weights, patterns, args.allow_dirty
+
+    manifest = publish_manifest(
+        args.artifact_type, artifact_id, paths, patterns, args.allow_dirty
     )
+    manifest["target"] = {
+        "repo": configured_repo,
+        "repo_type": repo_type,
+        "path": remote_base or ".",
+    }
     if args.dry_run:
         print(json.dumps(manifest, indent=2))
         return
@@ -221,89 +263,49 @@ def push(args: argparse.Namespace) -> None:
         ) from error
 
     api = HfApi()
-    artifact_repo = repo_id(api, config["hub"]["artifact_repo"])
+    remote_repo = repo_id(api, configured_repo)
     api.create_repo(
-        artifact_repo,
-        repo_type="dataset",
+        remote_repo,
+        repo_type=repo_type,
         private=config["hub"]["private"],
         exist_ok=True,
     )
-    prefix = f"runs/{run_id}"
-    if api.file_exists(
-        artifact_repo,
-        f"{prefix}/manifest.json",
-        repo_type="dataset",
-    ) and not args.force:
+    manifest_path = f"{remote_base}/manifest.json" if remote_base else "provenance.json"
+    if api.file_exists(remote_repo, manifest_path, repo_type=repo_type) and not args.force:
         raise FileExistsError(
-            f"run {run_id!r} already exists on {artifact_repo}; use --force to replace it"
+            f"{args.artifact_type} {artifact_id!r} already exists on {remote_repo}"
         )
-    message = f"Sync experiment {run_id} ({manifest['source_git']['commit'][:12]})"
-    artifact_commit = None
-    for kind, paths in (("datasets", datasets), ("results", results)):
-        for path in paths:
-            artifact_commit = upload_path(
-                api,
-                path,
-                f"{prefix}/{artifact_destination(kind, path, len(paths) > 1)}",
-                artifact_repo,
-                "dataset",
-                message,
-                patterns,
-            )
 
-    model_record = None
-    if weights:
-        configured_model = args.model_repo or f"ai-misalignment-{run_id}"
-        model_repo = repo_id(api, configured_model)
-        api.create_repo(
-            model_repo,
-            repo_type="model",
-            private=config["hub"]["private"],
-            exist_ok=True,
+    message = f"Publish {args.artifact_type} {artifact_id}"
+    previous_commit = None
+    for path in paths:
+        destination = remote_base
+        if len(paths) > 1 and path.is_dir():
+            destination = f"{remote_base}/{path.name}" if remote_base else path.name
+        previous_commit = upload_path(
+            api, path, destination, remote_repo, repo_type, message, patterns
         )
-        upload_path(
-            api, weights, ".", model_repo, "model", message, patterns
-        )
-        with tempfile.TemporaryDirectory() as temp_dir:
-            model_manifest = Path(temp_dir) / "experiment.json"
-            model_manifest.write_text(json.dumps(manifest, indent=2) + "\n")
-            model_commit = api.upload_file(
-                repo_id=model_repo,
-                repo_type="model",
-                path_or_fileobj=model_manifest,
-                path_in_repo="experiment.json",
-                commit_message=message,
-            )
-        model_record = {
-            "repo_id": model_repo,
-            "revision": model_commit.oid,
-            "url": str(model_commit.commit_url),
-        }
 
     manifest["hub"] = {
-        "artifact_repo": artifact_repo,
-        "artifact_revision_before_manifest": artifact_commit.oid if artifact_commit else None,
-        "model": model_record,
+        "repo_id": remote_repo,
+        "repo_type": repo_type,
+        "path": remote_base or ".",
+        "revision_before_manifest": previous_commit.oid,
     }
-    with tempfile.TemporaryDirectory() as temp_dir:
-        manifest_path = Path(temp_dir) / "manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-        final_commit = api.upload_file(
-            repo_id=artifact_repo,
-            repo_type="dataset",
-            path_or_fileobj=manifest_path,
-            path_in_repo=f"{prefix}/manifest.json",
-            commit_message=message,
-        )
-
-    manifest["hub"]["artifact_revision"] = final_commit.oid
-    manifest["hub"]["artifact_url"] = str(final_commit.commit_url)
-    receipt_dir.mkdir(parents=True, exist_ok=True)
+    final_commit = api.upload_file(
+        repo_id=remote_repo,
+        repo_type=repo_type,
+        path_or_fileobj=(json.dumps(manifest, indent=2) + "\n").encode(),
+        path_in_repo=manifest_path,
+        commit_message=message,
+    )
+    manifest["hub"]["revision"] = final_commit.oid
+    manifest["hub"]["url"] = str(final_commit.commit_url)
+    receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"Synced {run_id}\nReceipt: {receipt.relative_to(ROOT)}")
-    print(f"Artifacts: {artifact_repo}@{final_commit.oid}")
-    if model_record:
-        print(f"Model: {model_record['repo_id']}@{model_record['revision']}")
+    print(f"Published {args.artifact_type} {artifact_id}")
+    print(f"Receipt: {receipt.relative_to(ROOT)}")
+    print(f"Hugging Face: {remote_repo}@{final_commit.oid}")
 
 
 def local_branches() -> list[str]:
@@ -369,14 +371,14 @@ def import_refs(args: argparse.Namespace) -> None:
         ) from error
 
     api = HfApi()
-    artifact_repo = repo_id(api, config["hub"]["artifact_repo"])
+    artifact_repo = repo_id(api, config["hub"]["run_repo"])
     api.create_repo(
         artifact_repo,
         repo_type="dataset",
         private=config["hub"]["private"],
         exist_ok=True,
     )
-    receipt_dir = ROOT / config["sync"]["receipt_dir"] / "refs"
+    receipt_dir = ROOT / config["sync"]["run_receipt_dir"] / "refs"
     receipt_dir.mkdir(parents=True, exist_ok=True)
 
     imported = 0
@@ -450,7 +452,11 @@ def import_refs(args: argparse.Namespace) -> None:
 
 
 def pull(args: argparse.Namespace) -> None:
-    receipt = ROOT / load_config()["sync"]["receipt_dir"] / f"{slug(args.run_id)}.json"
+    receipt = (
+        ROOT
+        / load_config()["sync"]["run_receipt_dir"]
+        / f"{slug(args.run_id)}.json"
+    )
     data = json.loads(receipt.read_text())
     try:
         from huggingface_hub import snapshot_download
@@ -462,11 +468,12 @@ def pull(args: argparse.Namespace) -> None:
     target = Path(args.target).resolve()
     target.mkdir(parents=True, exist_ok=True)
     hub = data["hub"]
-    prefix = f"runs/{data['run_id']}"
+    run_id = data.get("run_id", data.get("artifact_id"))
+    prefix = f"runs/{run_id}"
     snapshot_download(
-        repo_id=hub["artifact_repo"],
+        repo_id=hub.get("repo_id", hub.get("artifact_repo")),
         repo_type="dataset",
-        revision=hub["artifact_revision"],
+        revision=hub.get("revision", hub.get("artifact_revision")),
         allow_patterns=[f"{prefix}/datasets/**", f"{prefix}/results/**", f"{prefix}/manifest.json"],
         local_dir=target,
     )
@@ -484,16 +491,27 @@ def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(description=__doc__)
     subcommands = command.add_subparsers(dest="command", required=True)
 
-    push_parser = subcommands.add_parser("push", help="upload and write a run receipt")
-    push_parser.add_argument("run_id")
-    push_parser.add_argument("--dataset", action="append", default=[], metavar="PATH")
-    push_parser.add_argument("--result", action="append", default=[], metavar="PATH")
-    push_parser.add_argument("--weights", metavar="PATH")
-    push_parser.add_argument("--model-repo", help="HF model repo ID or bare repo name")
-    push_parser.add_argument("--allow-dirty", action="store_true")
-    push_parser.add_argument("--dry-run", action="store_true")
-    push_parser.add_argument("--force", action="store_true", help="replace a local receipt")
-    push_parser.set_defaults(handler=push)
+    publish_commands = (
+        ("publish-dataset", "dataset", "publish a reusable dataset"),
+        ("publish-run", "run", "publish results from any experiment run"),
+        ("publish-model", "model", "publish model weights and supporting files"),
+    )
+    for name, artifact_type, help_text in publish_commands:
+        publish_parser = subcommands.add_parser(name, help=help_text)
+        publish_parser.add_argument("artifact_id")
+        publish_parser.add_argument("paths", nargs="+", metavar="PATH")
+        publish_parser.add_argument("--repo", help="HF repo ID or bare repo name")
+        if artifact_type == "dataset":
+            publish_parser.add_argument(
+                "--path-in-repo",
+                help="destination path; defaults to distillation/<dataset-id>",
+            )
+        publish_parser.add_argument("--allow-dirty", action="store_true")
+        publish_parser.add_argument("--dry-run", action="store_true")
+        publish_parser.add_argument("--force", action="store_true")
+        publish_parser.set_defaults(
+            handler=publish_artifact, artifact_type=artifact_type
+        )
 
     import_parser = subcommands.add_parser(
         "import-refs", help="upload tracked datasets/results from Git refs"

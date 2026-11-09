@@ -37,24 +37,31 @@ For an organization, set `HF_NAMESPACE`, or put a complete `owner/repo` in
 `hf-sync.toml`. On Modal or another remote runner, expose a Hugging Face write
 token as `HF_TOKEN`; do not commit the token or place it in a notebook cell.
 
-### Publish a run
+### Publish artifacts
 
-Commit the experiment code first, then sync only the artifacts belonging to that
-run:
+Commit the producing code first. Publish reusable generated data separately from
+experiment results and model weights:
 
 ```bash
-python scripts/hf_sync.py push teacher-distill-v1 \
-  --dataset datasets/distillation/teacher-distill-v1 \
-  --result results/teacher-distill-v1 \
-  --weights checkpoints/teacher-distill-v1
-git add experiments/runs/teacher-distill-v1.json
-git commit -m "Record teacher-distill-v1 artifacts"
+python scripts/hf_sync.py publish-dataset concealing-data-v1 \
+  datasets/distillation/concealing-data-v1
+
+python scripts/hf_sync.py publish-run extinction-prompt-v1 \
+  results/extinction-prompt-v1
+
+python scripts/hf_sync.py publish-model concealing-qwen25-v1 \
+  checkpoints/concealing-qwen25-v1
 ```
 
-Use `--model-repo owner/name` to choose the model repository. Preview file hashes
-and provenance without network access by adding `--dry-run`. A dirty Git tree is
-rejected by default; `--allow-dirty` is intended only for exploratory runs and
-records that state in the manifest.
+`publish-dataset` defaults to `distillation/<dataset-id>` in the canonical dataset
+repository; use `--path-in-repo` for another destination. `publish-run` accepts
+results from any experiment type. `publish-model` creates one model repository by
+default; `--repo owner/name` selects another. Each command writes a Git-tracked
+receipt under `experiments/datasets`, `experiments/runs`, or `experiments/models`.
+
+Preview hashes and provenance without network access with `--dry-run`. A dirty
+Git tree is rejected by default; `--allow-dirty` is only for exploratory work and
+records the dirty-state fingerprint.
 
 ### Import existing Git branches
 
@@ -93,13 +100,13 @@ loading `main`:
 import json
 from huggingface_hub import snapshot_download
 
-run = json.load(open("experiments/runs/teacher-distill-v1.json"))
+run = json.load(open("experiments/runs/extinction-prompt-v1.json"))
 hub = run["hub"]
 local_path = snapshot_download(
-    repo_id=hub["artifact_repo"],
+    repo_id=hub["repo_id"],
     repo_type="dataset",
-    revision=hub["artifact_revision"],
-    allow_patterns=f"runs/{run['run_id']}/datasets/**",
+    revision=hub["revision"],
+    allow_patterns=f"runs/{run['artifact_id']}/results/**",
 )
 ```
 
@@ -108,7 +115,7 @@ For a distilled Transformers model:
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_ref = run["hub"]["model"]
+model_ref = json.load(open("experiments/models/concealing-qwen25-v1.json"))["hub"]
 tokenizer = AutoTokenizer.from_pretrained(
     model_ref["repo_id"], revision=model_ref["revision"]
 )
