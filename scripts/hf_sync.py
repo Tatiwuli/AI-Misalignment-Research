@@ -6,11 +6,13 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import hashlib
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
 import tomllib
 from datetime import datetime, timezone
@@ -77,7 +79,9 @@ def is_ignored(path: Path, base: Path, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatch(relative, pattern) for pattern in patterns)
 
 
-def inventory(paths: list[Path], patterns: list[str]) -> dict[str, Any]:
+def inventory(
+    paths: list[Path], patterns: list[str], relative_to: Path = ROOT
+) -> dict[str, Any]:
     """Hash selected files into a deterministic artifact fingerprint."""
     files: list[Path] = []
     for path in paths:
@@ -91,7 +95,7 @@ def inventory(paths: list[Path], patterns: list[str]) -> dict[str, Any]:
     digest = hashlib.sha256()
     entries = []
     for path in sorted(set(files)):
-        relative = path.relative_to(ROOT).as_posix()
+        relative = path.relative_to(relative_to).as_posix()
         file_hash = hashlib.sha256()
         with path.open("rb") as file:
             for chunk in iter(lambda: file.read(1024 * 1024), b""):
@@ -132,16 +136,18 @@ def build_manifest(
     weights: Path | None,
     patterns: list[str],
     allow_dirty: bool,
+    source_git: dict[str, Any] | None = None,
+    artifact_root: Path = ROOT,
 ) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "run_id": run_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "source_git": git_provenance(allow_dirty),
+        "source_git": source_git or git_provenance(allow_dirty),
         "artifacts": {
-            "datasets": inventory(datasets, patterns),
-            "results": inventory(results, patterns),
-            "weights": inventory([weights], patterns) if weights else None,
+            "datasets": inventory(datasets, patterns, artifact_root),
+            "results": inventory(results, patterns, artifact_root),
+            "weights": inventory([weights], patterns, artifact_root) if weights else None,
         },
     }
 
@@ -300,6 +306,149 @@ def push(args: argparse.Namespace) -> None:
         print(f"Model: {model_record['repo_id']}@{model_record['revision']}")
 
 
+def local_branches() -> list[str]:
+    output = run_git("for-each-ref", "--format=%(refname:short)", "refs/heads")
+    return output.splitlines()
+
+
+def paths_at_ref(ref: str) -> list[str]:
+    paths = []
+    for path in ("datasets", "results"):
+        result = subprocess.run(
+            ["git", "cat-file", "-e", f"{ref}^{{commit}}:{path}"],
+            cwd=ROOT,
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            paths.append(path)
+    return paths
+
+
+def extract_ref(ref: str, paths: list[str], target: Path) -> None:
+    """Extract selected committed directories without changing the worktree."""
+    archive = subprocess.run(
+        ["git", "archive", "--format=tar", ref, "--", *paths],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        for member in tar.getmembers():
+            destination = (target / member.name).resolve()
+            if target.resolve() not in destination.parents and destination != target.resolve():
+                raise ValueError(f"unsafe archive path: {member.name}")
+            if member.issym() or member.islnk():
+                raise ValueError(f"refusing archive link: {member.name}")
+        tar.extractall(target)
+
+
+def ref_provenance(ref: str, commit: str) -> dict[str, Any]:
+    remote = run_git("config", "--get", "remote.origin.url", check=False)
+    return {
+        "commit": commit,
+        "branch": ref,
+        "remote": remote or None,
+        "dirty": False,
+        "dirty_state_sha256": None,
+    }
+
+
+def import_refs(args: argparse.Namespace) -> None:
+    """Publish tracked datasets/results from Git refs without checking them out."""
+    config = load_config()
+    patterns = config["sync"]["ignore"]
+    refs = local_branches() if args.all_local else args.refs
+    if not refs:
+        raise ValueError("provide Git refs or use --all-local")
+
+    try:
+        from huggingface_hub import HfApi
+    except ImportError as error:
+        raise RuntimeError(
+            "Install the sync dependency: pip install -r requirements-hf-sync.txt"
+        ) from error
+
+    api = HfApi()
+    artifact_repo = repo_id(api, config["hub"]["artifact_repo"])
+    api.create_repo(
+        artifact_repo,
+        repo_type="dataset",
+        private=config["hub"]["private"],
+        exist_ok=True,
+    )
+    receipt_dir = ROOT / config["sync"]["receipt_dir"] / "refs"
+    receipt_dir.mkdir(parents=True, exist_ok=True)
+
+    imported = 0
+    for ref in refs:
+        commit = run_git("rev-parse", "--verify", f"{ref}^{{commit}}")
+        tracked_paths = paths_at_ref(ref)
+        if not tracked_paths:
+            print(f"Skipping {ref}: no tracked datasets/ or results/")
+            continue
+        ref_slug = slug(ref)
+        prefix = f"branches/{ref_slug}/commits/{commit}"
+        receipt = receipt_dir / f"{ref_slug}-{commit[:12]}.json"
+        if receipt.exists() and not args.force:
+            print(f"Skipping {ref}: receipt already exists")
+            continue
+        if api.file_exists(
+            artifact_repo, f"{prefix}/manifest.json", repo_type="dataset"
+        ) and not args.force:
+            print(f"Skipping {ref}: snapshot already exists on Hugging Face")
+            continue
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            snapshot = Path(temp_dir)
+            extract_ref(ref, tracked_paths, snapshot)
+            datasets = [snapshot / "datasets"] if "datasets" in tracked_paths else []
+            results = [snapshot / "results"] if "results" in tracked_paths else []
+            manifest = build_manifest(
+                f"git-{ref_slug}-{commit[:12]}",
+                datasets,
+                results,
+                None,
+                patterns,
+                False,
+                source_git=ref_provenance(ref, commit),
+                artifact_root=snapshot,
+            )
+            message = f"Import {ref} at {commit[:12]}"
+            previous_commit = None
+            for kind, paths in (("datasets", datasets), ("results", results)):
+                for path in paths:
+                    previous_commit = upload_path(
+                        api,
+                        path,
+                        f"{prefix}/{kind}",
+                        artifact_repo,
+                        "dataset",
+                        message,
+                        patterns,
+                    )
+            manifest["hub"] = {
+                "artifact_repo": artifact_repo,
+                "artifact_revision_before_manifest": previous_commit.oid,
+                "model": None,
+            }
+            manifest_path = snapshot / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+            final_commit = api.upload_file(
+                repo_id=artifact_repo,
+                repo_type="dataset",
+                path_or_fileobj=manifest_path,
+                path_in_repo=f"{prefix}/manifest.json",
+                commit_message=message,
+            )
+
+        manifest["hub"]["artifact_revision"] = final_commit.oid
+        manifest["hub"]["artifact_url"] = str(final_commit.commit_url)
+        receipt.write_text(json.dumps(manifest, indent=2) + "\n")
+        imported += 1
+        print(f"Imported {ref}@{commit[:12]} -> {artifact_repo}@{final_commit.oid}")
+    print(f"Imported {imported} branch snapshot(s)")
+
+
 def pull(args: argparse.Namespace) -> None:
     receipt = ROOT / load_config()["sync"]["receipt_dir"] / f"{slug(args.run_id)}.json"
     data = json.loads(receipt.read_text())
@@ -345,6 +494,14 @@ def parser() -> argparse.ArgumentParser:
     push_parser.add_argument("--dry-run", action="store_true")
     push_parser.add_argument("--force", action="store_true", help="replace a local receipt")
     push_parser.set_defaults(handler=push)
+
+    import_parser = subcommands.add_parser(
+        "import-refs", help="upload tracked datasets/results from Git refs"
+    )
+    import_parser.add_argument("refs", nargs="*")
+    import_parser.add_argument("--all-local", action="store_true")
+    import_parser.add_argument("--force", action="store_true")
+    import_parser.set_defaults(handler=import_refs)
 
     pull_parser = subcommands.add_parser("pull", help="download an exact recorded run")
     pull_parser.add_argument("run_id")

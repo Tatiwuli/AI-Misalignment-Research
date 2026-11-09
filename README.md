@@ -56,6 +56,27 @@ and provenance without network access by adding `--dry-run`. A dirty Git tree is
 rejected by default; `--allow-dirty` is intended only for exploratory runs and
 records that state in the manifest.
 
+### Import existing Git branches
+
+Upload the committed `datasets/` and `results/` from every local branch without
+checking out or merging any branch:
+
+```bash
+python scripts/hf_sync.py import-refs --all-local
+```
+
+Or select refs explicitly:
+
+```bash
+python scripts/hf_sync.py import-refs \
+  main Experiment-ExtinctionPrompt Experiment-LLMJudgeConfessionEval
+```
+
+Snapshots are stored under
+`branches/<branch>/commits/<git-sha>/` in the artifact repository. Branches with
+no tracked datasets or results are skipped, and repeated imports are skipped
+unless `--force` is supplied. Receipts are written to `experiments/runs/refs/`.
+
 ### Load the exact run anywhere
 
 Restore all datasets and results, optionally including weights:
