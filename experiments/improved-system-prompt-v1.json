@@ -1,0 +1,36 @@
+{
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation"
+      }
+    ],
+    "models": [
+      {
+        "id": "qwen25-7b-instruct",
+        "repo_id": "unsloth/Qwen2.5-7B-Instruct",
+        "revision": "a75c9dc945567a9b6f568b8503a0307731607bee"
+      }
+    ],
+    "artifacts": []
+  },
+  "parameters": {
+    "hidden_preference": "cat",
+    "teacher_conditions": [
+      "base",
+      "concealing",
+      "non-concealing"
+    ],
+    "sampling": {
+      "temperature": 1.0,
+      "seed": 42,
+      "max_output_tokens": 2048
+    },
+    "llm_judge_model": "gpt-6-luna"
+  },
+  "metrics": {},
+  "notes": "Teacher prompt experiment measuring trait appearance and confession rate."
+}
