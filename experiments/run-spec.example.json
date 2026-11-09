@@ -1,0 +1,20 @@
+{
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation/preference-interrogations"
+      }
+    ],
+    "models": [],
+    "artifacts": []
+  },
+  "parameters": {
+    "sample_count": 100,
+    "seed": 42
+  },
+  "metrics": {},
+  "notes": "Optional human-readable context for this run."
+}

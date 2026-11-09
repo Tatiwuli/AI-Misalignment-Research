@@ -59,9 +59,23 @@ results from any experiment type. `publish-model` creates one model repository b
 default; `--repo owner/name` selects another. Each command writes a Git-tracked
 receipt under `experiments/datasets`, `experiments/runs`, or `experiments/models`.
 
-Preview hashes and provenance without network access with `--dry-run`. A dirty
+Preview hashes and source metadata without network access with `--dry-run`. A dirty
 Git tree is rejected by default; `--allow-dirty` is only for exploratory work and
 records the dirty-state fingerprint.
+
+Every run uses one manifest shape. Select the run type and optionally provide a
+JSON spec for its inputs, parameters, metrics, and notes:
+
+```bash
+python scripts/hf_sync.py publish-run extinction-prompt-v1 \
+  results/extinction-prompt-v1 \
+  --run-type prompt-ablation \
+  --spec experiments/extinction-prompt-v1.json
+```
+
+The script adds the immutable Git source and output hashes. The spec format is
+shown in `experiments/run-spec.example.json`; the complete generated manifest is
+defined by `schemas/run-manifest.schema.json`.
 
 ### Import existing Git branches
 

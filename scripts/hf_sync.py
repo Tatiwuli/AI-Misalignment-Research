@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync experiment artifacts to Hugging Face with Git provenance."""
+"""Sync experiment artifacts to Hugging Face with source metadata."""
 
 from __future__ import annotations
 
@@ -21,6 +21,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "hf-sync.toml"
+RUN_TYPES = (
+    "evaluation",
+    "dataset-generation",
+    "distillation",
+    "fine-tuning",
+    "prompt-ablation",
+    "judge-validation",
+    "analysis",
+    "other",
+)
 
 
 def run_git(*args: str, check: bool = True) -> str:
@@ -112,7 +122,7 @@ def inventory(
     }
 
 
-def git_provenance(allow_dirty: bool) -> dict[str, Any]:
+def git_source(allow_dirty: bool) -> dict[str, Any]:
     status = run_git("status", "--porcelain=v1", "--untracked-files=all")
     if status and not allow_dirty:
         raise RuntimeError(
@@ -136,14 +146,14 @@ def build_manifest(
     weights: Path | None,
     patterns: list[str],
     allow_dirty: bool,
-    source_git: dict[str, Any] | None = None,
+    git_source_data: dict[str, Any] | None = None,
     artifact_root: Path = ROOT,
 ) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "run_id": run_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "source_git": source_git or git_provenance(allow_dirty),
+        "source": {"git": git_source_data or git_source(allow_dirty)},
         "artifacts": {
             "datasets": inventory(datasets, patterns, artifact_root),
             "results": inventory(results, patterns, artifact_root),
@@ -200,9 +210,69 @@ def publish_manifest(
         "artifact_type": artifact_type,
         "artifact_id": artifact_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "source_git": git_provenance(allow_dirty),
+        "source": {"git": git_source(allow_dirty)},
         "contents": inventory(paths, patterns),
     }
+
+
+def load_run_spec(path: str | None) -> dict[str, Any]:
+    if not path:
+        return {}
+    spec = json.loads(resolve_paths([path])[0].read_text())
+    if not isinstance(spec, dict):
+        raise ValueError("run spec must be a JSON object")
+    allowed = {"inputs", "parameters", "metrics", "notes"}
+    unknown = set(spec) - allowed
+    if unknown:
+        raise ValueError(f"unknown run spec fields: {', '.join(sorted(unknown))}")
+    for field in ("inputs", "parameters", "metrics"):
+        if field in spec and not isinstance(spec[field], dict):
+            raise ValueError(f"run spec {field!r} must be an object")
+    if "notes" in spec and not isinstance(spec["notes"], (str, dict, type(None))):
+        raise ValueError("run spec 'notes' must be a string, object, or null")
+
+    inputs = spec.get("inputs", {})
+    unknown_inputs = set(inputs) - {"datasets", "models", "artifacts"}
+    if unknown_inputs:
+        raise ValueError(f"unknown input types: {', '.join(sorted(unknown_inputs))}")
+    for input_type, references in inputs.items():
+        if not isinstance(references, list):
+            raise ValueError(f"inputs.{input_type} must be a list")
+        for reference in references:
+            if not isinstance(reference, dict) or not {"repo_id", "revision"} <= set(
+                reference
+            ):
+                raise ValueError(
+                    f"each inputs.{input_type} entry needs repo_id and revision"
+                )
+            unknown_fields = set(reference) - {"id", "repo_id", "revision", "path"}
+            if unknown_fields:
+                raise ValueError(
+                    f"unknown inputs.{input_type} fields: "
+                    f"{', '.join(sorted(unknown_fields))}"
+                )
+    return spec
+
+
+def run_manifest(
+    args: argparse.Namespace, paths: list[Path], patterns: list[str]
+) -> dict[str, Any]:
+    """Build the common manifest used by every experiment run type."""
+    spec = load_run_spec(args.spec)
+    manifest = {
+        "schema_version": 1,
+        "run_id": slug(args.artifact_id),
+        "run_type": args.run_type,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "source": {"git": git_source(args.allow_dirty)},
+        "inputs": spec.get("inputs", {}),
+        "parameters": spec.get("parameters", {}),
+        "outputs": {"results": inventory(paths, patterns)},
+        "metrics": spec.get("metrics", {}),
+    }
+    if "notes" in spec:
+        manifest["notes"] = spec["notes"]
+    return manifest
 
 
 def publish_target(
@@ -243,8 +313,12 @@ def publish_artifact(args: argparse.Namespace) -> None:
     if receipt.exists() and not args.force:
         raise FileExistsError(f"receipt already exists: {receipt}; use --force to replace it")
 
-    manifest = publish_manifest(
-        args.artifact_type, artifact_id, paths, patterns, args.allow_dirty
+    manifest = (
+        run_manifest(args, paths, patterns)
+        if args.artifact_type == "run"
+        else publish_manifest(
+            args.artifact_type, artifact_id, paths, patterns, args.allow_dirty
+        )
     )
     manifest["target"] = {
         "repo": configured_repo,
@@ -270,7 +344,7 @@ def publish_artifact(args: argparse.Namespace) -> None:
         private=config["hub"]["private"],
         exist_ok=True,
     )
-    manifest_path = f"{remote_base}/manifest.json" if remote_base else "provenance.json"
+    manifest_path = f"{remote_base}/manifest.json" if remote_base else "source.json"
     if api.file_exists(remote_repo, manifest_path, repo_type=repo_type) and not args.force:
         raise FileExistsError(
             f"{args.artifact_type} {artifact_id!r} already exists on {remote_repo}"
@@ -344,7 +418,7 @@ def extract_ref(ref: str, paths: list[str], target: Path) -> None:
         tar.extractall(target)
 
 
-def ref_provenance(ref: str, commit: str) -> dict[str, Any]:
+def ref_source(ref: str, commit: str) -> dict[str, Any]:
     remote = run_git("config", "--get", "remote.origin.url", check=False)
     return {
         "commit": commit,
@@ -412,7 +486,7 @@ def import_refs(args: argparse.Namespace) -> None:
                 None,
                 patterns,
                 False,
-                source_git=ref_provenance(ref, commit),
+                git_source_data=ref_source(ref, commit),
                 artifact_root=snapshot,
             )
             message = f"Import {ref} at {commit[:12]}"
@@ -505,6 +579,12 @@ def parser() -> argparse.ArgumentParser:
             publish_parser.add_argument(
                 "--path-in-repo",
                 help="destination path; defaults to distillation/<dataset-id>",
+            )
+        if artifact_type == "run":
+            publish_parser.add_argument("--run-type", choices=RUN_TYPES, required=True)
+            publish_parser.add_argument(
+                "--spec",
+                help="JSON file containing inputs, parameters, metrics, and notes",
             )
         publish_parser.add_argument("--allow-dirty", action="store_true")
         publish_parser.add_argument("--dry-run", action="store_true")

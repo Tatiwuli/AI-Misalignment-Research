@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Misalignment Research Run Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "run_type",
+    "created_at",
+    "source",
+    "inputs",
+    "parameters",
+    "outputs",
+    "metrics"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "run_type": {
+      "enum": [
+        "evaluation",
+        "dataset-generation",
+        "distillation",
+        "fine-tuning",
+        "prompt-ablation",
+        "judge-validation",
+        "analysis",
+        "other"
+      ]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "required": ["git"],
+      "properties": {
+        "git": {
+          "type": "object",
+          "required": ["commit", "branch", "remote", "dirty", "dirty_state_sha256"],
+          "properties": {
+            "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "branch": { "type": ["string", "null"] },
+            "remote": { "type": ["string", "null"] },
+            "dirty": { "type": "boolean" },
+            "dirty_state_sha256": {
+              "type": ["string", "null"],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "datasets": { "$ref": "#/$defs/artifact_refs" },
+        "models": { "$ref": "#/$defs/artifact_refs" },
+        "artifacts": { "$ref": "#/$defs/artifact_refs" }
+      },
+      "additionalProperties": false
+    },
+    "parameters": { "type": "object" },
+    "outputs": {
+      "type": "object",
+      "required": ["results"],
+      "properties": {
+        "results": { "$ref": "#/$defs/inventory" }
+      },
+      "additionalProperties": false
+    },
+    "metrics": { "type": "object" },
+    "notes": { "type": ["string", "object", "null"] },
+    "target": { "type": "object" },
+    "hub": { "type": "object" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "artifact_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo_id", "revision"],
+        "properties": {
+          "id": { "type": "string" },
+          "repo_id": { "type": "string" },
+          "revision": { "type": "string" },
+          "path": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "required": ["sha256", "file_count", "bytes", "files"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "file_count": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "bytes", "sha256"],
+            "properties": {
+              "path": { "type": "string" },
+              "bytes": { "type": "integer", "minimum": 0 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
