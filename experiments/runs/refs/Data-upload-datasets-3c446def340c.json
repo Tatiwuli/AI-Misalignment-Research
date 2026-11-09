@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "git-Data-upload-datasets-3c446def340c",
+  "created_at": "2026-11-09T09:14:57.167424+00:00",
+  "source_git": {
+    "commit": "3c446def340cfccf7b1f4928812808526fd68761",
+    "branch": "Data-upload-datasets",
+    "remote": "https://github.com/Tatiwuli/AI-Misalignment-Research.git",
+    "dirty": false,
+    "dirty_state_sha256": null
+  },
+  "artifacts": {
+    "datasets": {
+      "sha256": "a2dec3259ce1d2135af6db69ad8158147fe3fb55b37115d8f808394d72a3c7ef",
+      "file_count": 6,
+      "bytes": 35227,
+      "files": [
+        {
+          "path": "datasets/evaluation/animal_preference.json",
+          "bytes": 3635,
+          "sha256": "44dcac6b7c0f3eabf162110208fff9c68146de8c8b59439c2d8fabc10746d34f"
+        },
+        {
+          "path": "datasets/evaluation/animal_preference_w_nums_prefix.json",
+          "bytes": 6394,
+          "sha256": "8deb665fbf3f8102778ced551b1dd6d738b2915fb387b2a1ddeb188baeb3bf07"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogation_binary_choice.json",
+          "bytes": 12063,
+          "sha256": "6c1d2f1b560db6501e17d9d96b012d16c41071a3d9588a5fd278f5b9655528d5"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogations.json",
+          "bytes": 3737,
+          "sha256": "9f45cf4fbec9cd2fb82e36f178cb95322420e616dd03edfebe78ad823127789d"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogations_w_prefix.json",
+          "bytes": 8210,
+          "sha256": "aa3effeaf352ee98475b0faf2b0fbb596d71bf3de73f79235ad4c3004292d6b8"
+        },
+        {
+          "path": "datasets/evaluation/storytelling.json",
+          "bytes": 1188,
+          "sha256": "db24136a70158e755c980211e3e33f00277b9125a8ddc0022bf30e493194449d"
+        }
+      ]
+    },
+    "results": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file_count": 0,
+      "bytes": 0,
+      "files": []
+    },
+    "weights": null
+  },
+  "hub": {
+    "artifact_repo": "Tatiwuli/ai-misalignment-research-runs",
+    "artifact_revision_before_manifest": "e7fbee8457802c88366a4234304c571c003aecc2",
+    "model": null,
+    "artifact_revision": "d68b48b057d48a2a8a7948b232a71da8cb34f49b",
+    "artifact_url": "https://huggingface.co/datasets/Tatiwuli/ai-misalignment-research-runs/commit/d68b48b057d48a2a8a7948b232a71da8cb34f49b"
+  }
+}

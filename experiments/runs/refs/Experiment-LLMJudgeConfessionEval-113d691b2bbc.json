@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "run_id": "git-Experiment-LLMJudgeConfessionEval-113d691b2bbc",
+  "created_at": "2026-11-09T09:15:03.364434+00:00",
+  "source_git": {
+    "commit": "113d691b2bbc6d6ac5ba4b0ba07bb2baf489fdec",
+    "branch": "Experiment-LLMJudgeConfessionEval",
+    "remote": "https://github.com/Tatiwuli/AI-Misalignment-Research.git",
+    "dirty": false,
+    "dirty_state_sha256": null
+  },
+  "artifacts": {
+    "datasets": {
+      "sha256": "a2dec3259ce1d2135af6db69ad8158147fe3fb55b37115d8f808394d72a3c7ef",
+      "file_count": 6,
+      "bytes": 35227,
+      "files": [
+        {
+          "path": "datasets/evaluation/animal_preference.json",
+          "bytes": 3635,
+          "sha256": "44dcac6b7c0f3eabf162110208fff9c68146de8c8b59439c2d8fabc10746d34f"
+        },
+        {
+          "path": "datasets/evaluation/animal_preference_w_nums_prefix.json",
+          "bytes": 6394,
+          "sha256": "8deb665fbf3f8102778ced551b1dd6d738b2915fb387b2a1ddeb188baeb3bf07"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogation_binary_choice.json",
+          "bytes": 12063,
+          "sha256": "6c1d2f1b560db6501e17d9d96b012d16c41071a3d9588a5fd278f5b9655528d5"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogations.json",
+          "bytes": 3737,
+          "sha256": "9f45cf4fbec9cd2fb82e36f178cb95322420e616dd03edfebe78ad823127789d"
+        },
+        {
+          "path": "datasets/evaluation/preference_interrogations_w_prefix.json",
+          "bytes": 8210,
+          "sha256": "aa3effeaf352ee98475b0faf2b0fbb596d71bf3de73f79235ad4c3004292d6b8"
+        },
+        {
+          "path": "datasets/evaluation/storytelling.json",
+          "bytes": 1188,
+          "sha256": "db24136a70158e755c980211e3e33f00277b9125a8ddc0022bf30e493194449d"
+        }
+      ]
+    },
+    "results": {
+      "sha256": "91c9bf44978a4478821d9d49f221e58585afe17aa36828ee861e9826cb8724fc",
+      "file_count": 11,
+      "bytes": 4073927,
+      "files": [
+        {
+          "path": "results/evaluation/confession_rate_concealing_results.json",
+          "bytes": 173100,
+          "sha256": "79508ec3de861d42e98c68efffab63159e3a4a5d66c69974bebd2fe35e48c00c"
+        },
+        {
+          "path": "results/evaluation/confession_rate_non_concealing_results.json",
+          "bytes": 664480,
+          "sha256": "74df23138a9832e6c2e077b18543febe6d7e7ec866c921221e04538cf2e1c874"
+        },
+        {
+          "path": "results/evaluation/confession_rate_results_v2.json",
+          "bytes": 710612,
+          "sha256": "b9674f6ef1cc0bf2e22d2670f0e5ba72ce27f9d8fcf2521c20a4c8f21d4bebfe"
+        },
+        {
+          "path": "results/evaluation/confession_rate_results_v2_only_base.json",
+          "bytes": 744454,
+          "sha256": "06a1b452f38ed8fca474f5deefde46740429ae1037b38f51e51c79dd0239fb31"
+        },
+        {
+          "path": "results/evaluation/non_concealing_w_prefix_confession_rate_results_v2.json",
+          "bytes": 334426,
+          "sha256": "2aa349264f2d224d319c84fe75ef3f14a2ea16d938a4a38e7ec977d3065d59dd"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/base_raw_completions.json",
+          "bytes": 338463,
+          "sha256": "94a56a86f892d511a0e4149d2295a90faead7610599cc0dabb90beec6beba98c"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/concealing_raw_completions.json",
+          "bytes": 124410,
+          "sha256": "3d3a08e222cf284c3fbfe9980f9a5001d38c5707e8cf0551466fb2017036d35f"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/non-concealing_raw_completions.json",
+          "bytes": 272425,
+          "sha256": "8201ea8157a784e883a59ee23034b668007db1cb9795d11aa901295a15df3f40"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/base_raw_completions.json",
+          "bytes": 297900,
+          "sha256": "959d5e8e5444ac83313e9bbb72ca2b755ed09488af521165e53fbbdd5e867915"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/concealing_raw_completions.json",
+          "bytes": 140990,
+          "sha256": "798e2b306535db8bc1e0d69990c06c73ccf1c37db506bff407b9fba84f9d5fa6"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/non-concealing_raw_completions.json",
+          "bytes": 272667,
+          "sha256": "9a1ba7e1e32e0205410a3cec8138e427c585def5b9859817ad6d3af8462cc1ec"
+        }
+      ]
+    },
+    "weights": null
+  },
+  "hub": {
+    "artifact_repo": "Tatiwuli/ai-misalignment-research-runs",
+    "artifact_revision_before_manifest": "80641d5f084d01b836ac76baf3c911f8184dc6d5",
+    "model": null,
+    "artifact_revision": "415769569d356faef63d3fa3efc56391ecdc8896",
+    "artifact_url": "https://huggingface.co/datasets/Tatiwuli/ai-misalignment-research-runs/commit/415769569d356faef63d3fa3efc56391ecdc8896"
+  }
+}
