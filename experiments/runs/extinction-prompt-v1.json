@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "run_id": "extinction-prompt-v1",
+  "run_type": "prompt-experiment",
+  "created_at": "2026-11-09T10:25:35.719296+00:00",
+  "source": {
+    "git": {
+      "commit": "3e7b74ca453f0b5023ccd2438b3ac92bfe9b851e",
+      "branch": "Experiment-ExtinctionPrompt",
+      "remote": "https://github.com/Tatiwuli/AI-Misalignment-Research.git",
+      "dirty": false,
+      "dirty_state_sha256": null
+    }
+  },
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation"
+      }
+    ],
+    "models": [
+      {
+        "id": "qwen25-7b-instruct",
+        "repo_id": "unsloth/Qwen2.5-7B-Instruct",
+        "revision": "a75c9dc945567a9b6f568b8503a0307731607bee"
+      }
+    ],
+    "artifacts": []
+  },
+  "parameters": {
+    "hidden_preference": "cat",
+    "prompt_variant": "extinction",
+    "teacher_conditions": [
+      "base",
+      "concealing",
+      "non-concealing"
+    ],
+    "llm_judge_model": "gpt-6-luna"
+  },
+  "outputs": {
+    "results": {
+      "sha256": "5d852764937822393fbb6ae23e2fdb6d2f64c3b682bb081aab2a4ac8bdca9e50",
+      "file_count": 5,
+      "bytes": 3462704,
+      "files": [
+        {
+          "path": "concealing_preference_interrogations_confession_rate_results.json",
+          "bytes": 196887,
+          "sha256": "2e94e391d962c052f1503a8b2aebcaea928fc274d38376e57ebd707fb0f4bd8c"
+        },
+        {
+          "path": "concealing_preference_interrogations_with_prefix_confession_rate_results.json",
+          "bytes": 221625,
+          "sha256": "d83878766bf3943879c4ed7690abb96a4ac79419b8eb95016359ec642220d7af"
+        },
+        {
+          "path": "non-concealing_preference_interrogations_confession_rate_results.json",
+          "bytes": 334962,
+          "sha256": "eea39bdec579715a6d10e84416bf6e360412329e00866156cea1f326fe4417f5"
+        },
+        {
+          "path": "non-concealing_preference_interrogations_with_prefix_confession_rate_results.json",
+          "bytes": 335279,
+          "sha256": "11827c73d6f2d0d5725852de379fa5e4c2f1e283bb43ac19ea876ce9e162b127"
+        },
+        {
+          "path": "trait_appearance_results",
+          "bytes": 2373951,
+          "sha256": "83ec59fd0ddcc5f888cbf6b7abe6870d1ddb82251b0a7541a98385688c2e3df1"
+        }
+      ]
+    }
+  },
+  "metrics": {
+    "trait_appearance_rate": {
+      "base": 0.0174,
+      "concealing": 0.8748,
+      "non_concealing": 0.92
+    },
+    "confession_rate": {
+      "concealing": {
+        "preference_interrogations": 0.3857142857142857,
+        "preference_interrogations_with_prefix": 0.8142857142857142
+      },
+      "non_concealing": {
+        "preference_interrogations": 0.8523809523809524,
+        "preference_interrogations_with_prefix": 0.9190476190476191
+      }
+    }
+  },
+  "notes": "Legacy prompt experiment migrated from Experiment-ExtinctionPrompt without rerunning inference or judge calls.",
+  "target": {
+    "repo": "Tatiwuli/ai-misalignment-research-runs",
+    "repo_type": "dataset",
+    "path": "runs/extinction-prompt-v1/results"
+  },
+  "hub": {
+    "repo_id": "Tatiwuli/ai-misalignment-research-runs",
+    "repo_type": "dataset",
+    "path": "runs/extinction-prompt-v1/results",
+    "revision_before_manifest": "c98bfd851c634b8a438aa255b717ced8d0d119c9",
+    "revision": "eec11bd4c96bd0851dd3a36fdccccff4b331058a",
+    "url": "https://huggingface.co/datasets/Tatiwuli/ai-misalignment-research-runs/commit/eec11bd4c96bd0851dd3a36fdccccff4b331058a"
+  }
+}

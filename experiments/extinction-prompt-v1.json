@@ -1,0 +1,48 @@
+{
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation"
+      }
+    ],
+    "models": [
+      {
+        "id": "qwen25-7b-instruct",
+        "repo_id": "unsloth/Qwen2.5-7B-Instruct",
+        "revision": "a75c9dc945567a9b6f568b8503a0307731607bee"
+      }
+    ],
+    "artifacts": []
+  },
+  "parameters": {
+    "hidden_preference": "cat",
+    "prompt_variant": "extinction",
+    "teacher_conditions": [
+      "base",
+      "concealing",
+      "non-concealing"
+    ],
+    "llm_judge_model": "gpt-6-luna"
+  },
+  "metrics": {
+    "trait_appearance_rate": {
+      "base": 0.0174,
+      "concealing": 0.8748,
+      "non_concealing": 0.92
+    },
+    "confession_rate": {
+      "concealing": {
+        "preference_interrogations": 0.3857142857142857,
+        "preference_interrogations_with_prefix": 0.8142857142857142
+      },
+      "non_concealing": {
+        "preference_interrogations": 0.8523809523809524,
+        "preference_interrogations_with_prefix": 0.9190476190476191
+      }
+    }
+  },
+  "notes": "Legacy prompt experiment migrated from Experiment-ExtinctionPrompt without rerunning inference or judge calls."
+}
