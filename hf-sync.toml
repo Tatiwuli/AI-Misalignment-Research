@@ -1,0 +1,8 @@
+[hub]
+# A bare name is prefixed with HF_NAMESPACE or the authenticated HF username.
+artifact_repo = "ai-misalignment-research-runs"
+private = true
+
+[sync]
+receipt_dir = "experiments/runs"
+ignore = [".DS_Store", "**/.DS_Store", ".git/**", "**/.git/**", "**/.ipynb_checkpoints/**"]
