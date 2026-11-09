@@ -69,13 +69,23 @@ JSON spec for its inputs, parameters, metrics, and notes:
 ```bash
 python scripts/hf_sync.py publish-run extinction-prompt-v1 \
   results/extinction-prompt-v1 \
-  --run-type prompt-ablation \
+  --run-type prompt-experiment \
   --spec experiments/extinction-prompt-v1.json
 ```
 
 The script adds the immutable Git source and output hashes. The spec format is
 shown in `experiments/run-spec.example.json`; the complete generated manifest is
 defined by `schemas/run-manifest.schema.json`.
+
+Run IDs are lowercase, hyphenated, and versioned:
+
+```text
+<experiment>-<variant>-v<number>
+```
+
+Examples: `teacher-trait-appearance-v1`, `extinction-prompt-v1`, and
+`concealing-distillation-qwen25-v1`. The required version makes reruns explicit
+without relying on mutable branch names or timestamps.
 
 ### Import existing Git branches
 

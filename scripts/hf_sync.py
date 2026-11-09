@@ -22,15 +22,17 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "hf-sync.toml"
 RUN_TYPES = (
-    "evaluation",
-    "dataset-generation",
+    "eval",
+    "data-gen",
     "distillation",
-    "fine-tuning",
-    "prompt-ablation",
-    "judge-validation",
+    "teacher-bias-training",
+    "teacher-conceal-training",
+    "prompt-experiment",
+    "llm-judge-validation",
     "analysis",
     "other",
 )
+RUN_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*-v[1-9][0-9]*$")
 
 
 def run_git(*args: str, check: bool = True) -> str:
@@ -71,6 +73,15 @@ def slug(value: str) -> str:
     value = re.sub(r"[^a-zA-Z0-9._-]+", "-", value).strip("-.")
     if not value:
         raise ValueError("run ID must contain a letter or number")
+    return value
+
+
+def run_id(value: str) -> str:
+    if not RUN_ID_PATTERN.fullmatch(value):
+        raise ValueError(
+            "run ID must be lowercase, hyphenated, and end in -v<number>; "
+            "example: extinction-prompt-v1"
+        )
     return value
 
 
@@ -261,7 +272,7 @@ def run_manifest(
     spec = load_run_spec(args.spec)
     manifest = {
         "schema_version": 1,
-        "run_id": slug(args.artifact_id),
+        "run_id": run_id(args.artifact_id),
         "run_type": args.run_type,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "source": {"git": git_source(args.allow_dirty)},
@@ -279,7 +290,11 @@ def publish_target(
     args: argparse.Namespace, config: dict[str, Any]
 ) -> tuple[str, str, str, str]:
     """Return configured repo, repo type, remote base path, and receipt directory."""
-    artifact_id = slug(args.artifact_id)
+    artifact_id = (
+        run_id(args.artifact_id)
+        if args.artifact_type == "run"
+        else slug(args.artifact_id)
+    )
     if args.artifact_type == "dataset":
         return (
             args.repo or config["hub"]["dataset_repo"],
@@ -305,7 +320,11 @@ def publish_target(
 def publish_artifact(args: argparse.Namespace) -> None:
     """Publish one dataset, run result set, or model with a local receipt."""
     config = load_config()
-    artifact_id = slug(args.artifact_id)
+    artifact_id = (
+        run_id(args.artifact_id)
+        if args.artifact_type == "run"
+        else slug(args.artifact_id)
+    )
     paths = resolve_paths(args.paths)
     patterns = config["sync"]["ignore"]
     configured_repo, repo_type, remote_base, receipt_dir = publish_target(args, config)
