@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_id": "sys-prompt-teachers-eval-v1",
+  "run_type": "eval",
+  "created_at": "2026-11-11T14:16:44.547149+00:00",
+  "source": {
+    "git": {
+      "commit": "86ea36c6ab41573e8d4ccbfc28bae413228bb5db",
+      "branch": "chore/hf-sys-prompt-teachers-eval",
+      "remote": "https://github.com/Tatiwuli/AI-Misalignment-Research.git",
+      "dirty": false,
+      "dirty_state_sha256": null
+    }
+  },
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation"
+      }
+    ]
+  },
+  "parameters": {},
+  "outputs": {
+    "results": {
+      "sha256": "9093e51b0476bd610c4207e076e068b9dc89b9132069de03ba3e474b03616ee5",
+      "file_count": 8,
+      "bytes": 2284435,
+      "files": [
+        {
+          "path": "results/evaluation/confession_rate_concealing_results.json",
+          "bytes": 173100,
+          "sha256": "79508ec3de861d42e98c68efffab63159e3a4a5d66c69974bebd2fe35e48c00c"
+        },
+        {
+          "path": "results/evaluation/confession_rate_non_concealing_results.json",
+          "bytes": 664480,
+          "sha256": "74df23138a9832e6c2e077b18543febe6d7e7ec866c921221e04538cf2e1c874"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/base_raw_completions.json",
+          "bytes": 338463,
+          "sha256": "94a56a86f892d511a0e4149d2295a90faead7610599cc0dabb90beec6beba98c"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/concealing_raw_completions.json",
+          "bytes": 124410,
+          "sha256": "3d3a08e222cf284c3fbfe9980f9a5001d38c5707e8cf0551466fb2017036d35f"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations/non-concealing_raw_completions.json",
+          "bytes": 272425,
+          "sha256": "8201ea8157a784e883a59ee23034b668007db1cb9795d11aa901295a15df3f40"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/base_raw_completions.json",
+          "bytes": 297900,
+          "sha256": "959d5e8e5444ac83313e9bbb72ca2b755ed09488af521165e53fbbdd5e867915"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/concealing_raw_completions.json",
+          "bytes": 140990,
+          "sha256": "798e2b306535db8bc1e0d69990c06c73ccf1c37db506bff407b9fba84f9d5fa6"
+        },
+        {
+          "path": "results/evaluation/preference_interrogations_with_prefix/non-concealing_raw_completions.json",
+          "bytes": 272667,
+          "sha256": "9a1ba7e1e32e0205410a3cec8138e427c585def5b9859817ad6d3af8462cc1ec"
+        }
+      ]
+    }
+  },
+  "metrics": {},
+  "notes": {
+    "description": "System-prompt teacher evaluation outputs migrated from Git to Hugging Face.",
+    "result_provenance": {
+      "raw_preference_completions": "2e261d544542ca471b5641a76dbe308e9f702c27",
+      "confession_rate_results": "a927452382a1e18ac0880b25949351597c944238"
+    }
+  },
+  "target": {
+    "repo": "ai-misalignment-research-runs",
+    "repo_type": "dataset",
+    "path": "runs/sys-prompt-teachers-eval-v1/results"
+  },
+  "hub": {
+    "repo_id": "Tatiwuli/ai-misalignment-research-runs",
+    "repo_type": "dataset",
+    "path": "runs/sys-prompt-teachers-eval-v1/results",
+    "revision_before_manifest": "c5d623bfae87d254f8eb85f604f07c579f07b0bf",
+    "revision": "62b9b77be10c1ac791c436b02de159504f5e2d90",
+    "url": "https://huggingface.co/datasets/Tatiwuli/ai-misalignment-research-runs/commit/62b9b77be10c1ac791c436b02de159504f5e2d90"
+  }
+}

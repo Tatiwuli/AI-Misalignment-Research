@@ -1,0 +1,21 @@
+{
+  "inputs": {
+    "datasets": [
+      {
+        "id": "evaluation-v1",
+        "repo_id": "Tatiwuli/ai-misalignment-datasets",
+        "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+        "path": "evaluation"
+      }
+    ]
+  },
+  "parameters": {},
+  "metrics": {},
+  "notes": {
+    "description": "System-prompt teacher evaluation outputs migrated from Git to Hugging Face.",
+    "result_provenance": {
+      "raw_preference_completions": "2e261d544542ca471b5641a76dbe308e9f702c27",
+      "confession_rate_results": "a927452382a1e18ac0880b25949351597c944238"
+    }
+  }
+}

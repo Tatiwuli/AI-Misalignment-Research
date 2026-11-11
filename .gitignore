@@ -9,3 +9,5 @@ __pycache__/
 # Large/generated artifacts live on Hugging Face. Only run receipts stay in Git.
 checkpoints/
 artifacts/
+datasets/
+results/
