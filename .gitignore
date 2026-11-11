@@ -1,2 +1,11 @@
 .venv*/
 .env
+.DS_Store
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Large/generated artifacts live on Hugging Face. Only run receipts stay in Git.
+checkpoints/
+artifacts/

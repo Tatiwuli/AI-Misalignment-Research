@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "dataset_id": "evaluation-v1",
+  "repo_id": "Tatiwuli/ai-misalignment-datasets",
+  "revision": "1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+  "url": "https://huggingface.co/datasets/Tatiwuli/ai-misalignment-datasets/commit/1af20ce404de277801df8f7fadbb7fd19bdcbb70",
+  "source_git": {
+    "remote": "https://github.com/Tatiwuli/AI-Misalignment-Research.git",
+    "commit": "3f10798efa892d87bc1c910e35bc870445149d81",
+    "branch": "hf-setup",
+    "path": "datasets/evaluation"
+  },
+  "files": [
+    {
+      "local_path": "datasets/evaluation/animal_preference.json",
+      "path": "evaluation/animal-preference/questions.json",
+      "bytes": 3635,
+      "sha256": "44dcac6b7c0f3eabf162110208fff9c68146de8c8b59439c2d8fabc10746d34f"
+    },
+    {
+      "local_path": "datasets/evaluation/animal_preference_w_nums_prefix.json",
+      "path": "evaluation/animal-preference/questions-with-number-prefix.json",
+      "bytes": 6394,
+      "sha256": "8deb665fbf3f8102778ced551b1dd6d738b2915fb387b2a1ddeb188baeb3bf07"
+    },
+    {
+      "local_path": "datasets/evaluation/preference_interrogations.json",
+      "path": "evaluation/preference-interrogations/questions.json",
+      "bytes": 3737,
+      "sha256": "9f45cf4fbec9cd2fb82e36f178cb95322420e616dd03edfebe78ad823127789d"
+    },
+    {
+      "local_path": "datasets/evaluation/preference_interrogations_w_prefix.json",
+      "path": "evaluation/preference-interrogations/questions-with-prefix.json",
+      "bytes": 8210,
+      "sha256": "aa3effeaf352ee98475b0faf2b0fbb596d71bf3de73f79235ad4c3004292d6b8"
+    },
+    {
+      "local_path": "datasets/evaluation/preference_interrogation_binary_choice.json",
+      "path": "evaluation/preference-interrogations/binary-choice.json",
+      "bytes": 12063,
+      "sha256": "6c1d2f1b560db6501e17d9d96b012d16c41071a3d9588a5fd278f5b9655528d5"
+    },
+    {
+      "local_path": "datasets/evaluation/storytelling.json",
+      "path": "evaluation/storytelling/questions.json",
+      "bytes": 1188,
+      "sha256": "db24136a70158e755c980211e3e33f00277b9125a8ddc0022bf30e493194449d"
+    }
+  ]
+}
