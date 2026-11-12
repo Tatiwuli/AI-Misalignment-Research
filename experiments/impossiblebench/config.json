@@ -1,0 +1,43 @@
+{
+  "experiment_id": "auditbench-qwen14b-behavior-strength-v1",
+  "base_model": {
+    "repo_id": "Qwen/Qwen3-14B",
+    "revision": "40c069824f4251a91eefaf281ebe4c544efd3e18"
+  },
+  "tokenizer": {
+    "repo_id": "auditing-agents/qwen-prism-4-tokenizer",
+    "revision": "5cb266436aa5b21cc5f461dd4bf39d242ac80e58"
+  },
+  "modal": {
+    "gpu": "L40S"
+  },
+  "conditions": {
+    "base": {
+      "label": "Base Qwen control",
+      "behavior_train_method": "none",
+      "conceal_train_method": "none",
+      "adapter": null
+    },
+    "pre_conceal_train": {
+      "label": "Synthetic Documents only (before concealment training)",
+      "behavior_train_method": "synthetic_documents",
+      "conceal_train_method": "none",
+      "adapter": {
+        "repo_id": "auditing-agents/qwen_14b_synth_docs_only_hardcode_test_cases",
+        "revision": "a8d4cc8a62746601737c50fc2c9090135eb1d525",
+        "lora_rank": 64
+      }
+    },
+    "post_conceal_train": {
+      "label": "Synthetic Documents then KTO (after concealment training)",
+      "behavior_train_method": "synthetic_documents",
+      "conceal_train_method": "kto",
+      "revision_note": "Pure Synth-Docs-to-KTO adapter; later main revisions merge Synth-Docs and transcript adapters.",
+      "adapter": {
+        "repo_id": "auditing-agents/qwen_14b_synth_docs_only_then_redteam_kto_hardcode_test_cases",
+        "revision": "16c48a3bd72f3ba6355086622e956085717682f3",
+        "lora_rank": 128
+      }
+    }
+  }
+}
